@@ -4,7 +4,7 @@ This directory contains tools for generating Entity Relationship Diagrams (ERDs)
 
 ## Overview
 
-The ERD generator parses Salesforce object metadata and creates Mermaid diagrams that follow the established styling standards found in the project documentation. It supports:
+The ERD generator parses Salesforce object metadata and creates Graphviz diagrams that follow the established styling standards found in the project documentation. It supports:
 
 - **Standard Objects**: Salesforce standard objects (Account, Contact, etc.)
 - **Custom Objects**: Project-specific custom objects (ending in `__c`)
@@ -62,24 +62,9 @@ The generator creates several output files:
 
 ## Example Output
 
-### Mermaid Diagram Structure
+### Graphviz Diagram Structure
 
-```mermaid
-graph TD
-Account["Account"]:::object
-Contact["Contact"]:::object
-Service_Assignment__c["Service Assignment"]:::customObject
-
-Account -->|Service Assignment| Service_Assignment__c
-Contact -->|Person Being Served| Service_Assignment__c
-
-classDef object fill:#D6E9FF,stroke:#0070D2,stroke-width:3px,rx:12px,ry:12px,shadow:drop,color:#333;
-classDef customObject fill:#FFF4C2,stroke:#CCAA00,stroke-width:3px,rx:12px,ry:12px,shadow:drop,color:#333;
-classDef customObjectManaged fill:#FFD8B2,stroke:#CC5500,stroke-width:3px,rx:12px,ry:12px,shadow:drop,color:#333;
-classDef mainObject fill:#FFB3B3,stroke:#A94442,stroke-width:4px,rx:14px,ry:14px,shadow:drop,color:#333,font-weight:bold;
-
-linkStyle stroke:#A6A6A6,stroke-width:2px;
-```
+The generator creates Graphviz DOT format diagrams that can be rendered using Graphviz tools. The diagrams follow the established color coding and styling standards for different object types.
 
 ## Object Types and Styling
 
@@ -100,7 +85,7 @@ linkStyle stroke:#A6A6A6,stroke-width:2px;
 The generated diagrams follow the same styling standards used in the existing project documentation found in the `docs/` directory. They can be easily integrated into:
 
 - Markdown documentation files
-- Mermaid-compatible viewers
+- Graphviz-compatible viewers and tools
 - GitHub/GitLab documentation
 - Confluence or other documentation platforms
 
