@@ -12,6 +12,55 @@ from typing import List, Dict, Set, Tuple, Optional
 from dataclasses import dataclass
 import subprocess
 
+# Constants and Configuration
+class ERDConfig:
+    """Configuration constants for ERD generation."""
+    
+    # Default values
+    DEFAULT_MAX_OBJECTS = 15
+    DEFAULT_WIDTH = 2500
+    DEFAULT_FILENAME = "final_erd"
+    DEFAULT_ENGINE = "dot"
+    DEFAULT_FORMATS = ["svg"]
+    
+    # Field limiting thresholds
+    FIELD_LIMIT_THRESHOLDS = {
+        500: 2,   # Very restrictive for massive diagrams
+        200: 3,   # Restrictive for large diagrams
+        100: 4,   # Moderate limit for medium diagrams
+        50: 6,    # Light limit for medium diagrams
+        20: 8,    # Light limit for smaller diagrams
+    }
+    
+    # Object colors (Salesforce ERD standards)
+    COLORS = {
+        'standard': "#E1F5FE",  # Light blue for standard objects
+        'managed': "#FFE0B2",   # Light orange for managed package objects
+        'custom': "#FFF9C4",    # Light yellow for custom objects
+    }
+    
+    # DOT styling
+    DOT_STYLES = {
+        'title_fontsize': 24,
+        'node_fontsize': 12,
+        'edge_fontsize': 10,
+        'node_margin': 0.1,
+        'node_sep': 1.0,
+        'rank_sep': 2.0,
+        'edge_penwidth': 1.5,
+        'master_detail_penwidth': 2.0,
+        'font_family': "Arial, sans-serif",
+    }
+    
+    # Relationship arrow styles
+    ARROW_STYLES = {
+        'master_detail': "arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0",
+        'lookup': "arrowhead=open, arrowtail=none, color=gray, penwidth=1.5",
+    }
+    
+    # Display limits
+    MAX_OBJECTS_DISPLAY = 10  # Max objects to show in selection message
+
 
 @dataclass
 class SalesforceField:
@@ -218,16 +267,16 @@ class SalesforceERDGenerator:
             "digraph G {",
             f'  label="{title}";',
             "  labelloc=t;",
-            "  fontsize=24;",
-            "  fontname=\"Arial, sans-serif\";",
+            f"  fontsize={ERDConfig.DOT_STYLES['title_fontsize']};",
+            f"  fontname=\"{ERDConfig.DOT_STYLES['font_family']}\";",
             "  rankdir=LR;",  # Left to right layout for better horizontal space usage
             "  splines=ortho;",  # Use orthogonal (straight) lines for cleaner look
-            "  nodesep=1.0;",    # Spacing between nodes
-            "  ranksep=2.0;",    # Spacing between ranks
+            f"  nodesep={ERDConfig.DOT_STYLES['node_sep']};",    # Spacing between nodes
+            f"  ranksep={ERDConfig.DOT_STYLES['rank_sep']};",    # Spacing between ranks
             "  overlap=false;",  # Prevent node overlap
             "  concentrate=false;",  # Don't merge parallel edges
-            "  node [shape=record, style=filled, fontname=\"Arial, sans-serif\", fontsize=12, margin=0.1];",
-            "  edge [fontname=\"Arial, sans-serif\", fontsize=10, penwidth=1.5];",
+            f"  node [shape=record, style=filled, fontname=\"{ERDConfig.DOT_STYLES['font_family']}\", fontsize={ERDConfig.DOT_STYLES['node_fontsize']}, margin={ERDConfig.DOT_STYLES['node_margin']}];",
+            f"  edge [fontname=\"{ERDConfig.DOT_STYLES['font_family']}\", fontsize={ERDConfig.DOT_STYLES['edge_fontsize']}, penwidth={ERDConfig.DOT_STYLES['edge_penwidth']}];",
             ""
         ]
         
@@ -262,11 +311,11 @@ class SalesforceERDGenerator:
                 
                 # Add color based on Salesforce ERD standards
                 if obj.is_standard:
-                    color = "#E1F5FE"  # Light blue for standard objects
+                    color = ERDConfig.COLORS['standard']
                 elif obj.is_managed:
-                    color = "#FFE0B2"  # Light orange for managed package objects
+                    color = ERDConfig.COLORS['managed']
                 else:
-                    color = "#FFF9C4"  # Light yellow for custom objects
+                    color = ERDConfig.COLORS['custom']
                 
                 dot_lines.append(f'  {obj_name} [label="{node_content}", fillcolor="{color}"];')
         
@@ -277,9 +326,9 @@ class SalesforceERDGenerator:
             if rel.from_object in objects and rel.to_object in objects:
                 # Determine arrow style and color based on relationship type
                 if rel.type == "Master-Detail":
-                    arrow_style = "arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0"
+                    arrow_style = ERDConfig.ARROW_STYLES['master_detail']
                 else:  # Lookup
-                    arrow_style = "arrowhead=open, arrowtail=none, color=gray, penwidth=1.5"
+                    arrow_style = ERDConfig.ARROW_STYLES['lookup']
                 
                 # Use ports to connect to specific field positions and include field name in the connection
                 # This creates a more direct visual connection between the field and the relationship
@@ -289,7 +338,7 @@ class SalesforceERDGenerator:
         
         return "\n".join(dot_lines)
     
-    def generate_image_from_dot(self, dot_content: str, output_file: Path, format_type: str, width: int = 1200, engine: str = "dot") -> bool:
+    def generate_image_from_dot(self, dot_content: str, output_file: Path, format_type: str, width: int = ERDConfig.DEFAULT_WIDTH, engine: str = ERDConfig.DEFAULT_ENGINE) -> bool:
         """Generate image from DOT content using Graphviz."""
         try:
             # Create temporary DOT file
@@ -331,10 +380,10 @@ class SalesforceERDGenerator:
             print(f"Error generating DOT image: {e}")
             return False
 
-    def generate_erd_with_images(self, max_objects: int = 15, formats: List[str] = None, filename: str = "salesforce_erd", layout: str = "auto", width: int = 1200, show_fields: bool = True, max_fields_per_entity: int = None, auto_limit_fields: bool = True, engine: str = "dot") -> bool:
+    def generate_erd_with_images(self, max_objects: int = ERDConfig.DEFAULT_MAX_OBJECTS, formats: List[str] = None, filename: str = "salesforce_erd", layout: str = "auto", width: int = ERDConfig.DEFAULT_WIDTH, show_fields: bool = True, max_fields_per_entity: int = None, auto_limit_fields: bool = True, engine: str = ERDConfig.DEFAULT_ENGINE) -> bool:
         """Generate ERD and create images in one go."""
         if formats is None:
-            formats = ['svg']  # Default to SVG for better scalability
+            formats = ERDConfig.DEFAULT_FORMATS
         
         print(f"Generating ERD with top {max_objects} objects...")
         
@@ -344,25 +393,15 @@ class SalesforceERDGenerator:
             print("No objects found to generate ERD")
             return False
         
-        print(f"Selected objects: {', '.join(top_objects[:10])}{'...' if len(top_objects) > 10 else ''}")
+        print(f"Selected objects: {', '.join(top_objects[:ERDConfig.MAX_OBJECTS_DISPLAY])}{'...' if len(top_objects) > ERDConfig.MAX_OBJECTS_DISPLAY else ''}")
         
         # DOT has label length limits, so we need to be more aggressive with field limiting for readability
         if auto_limit_fields and max_fields_per_entity is None:
-            if len(top_objects) >= 500:
-                max_fields_per_entity = 2  # Very restrictive for massive diagrams
-                print("⚠️  Auto-limiting to 2 fields per entity for readability")
-            elif len(top_objects) >= 200:
-                max_fields_per_entity = 3  # Restrictive for large diagrams
-                print("⚠️  Auto-limiting to 3 fields per entity for readability")
-            elif len(top_objects) >= 100:
-                max_fields_per_entity = 4  # Moderate limit for medium diagrams
-                print("⚠️  Auto-limiting to 4 fields per entity for readability")
-            elif len(top_objects) >= 50:
-                max_fields_per_entity = 6  # Light limit for medium diagrams
-                print("⚠️  Auto-limiting to 6 fields per entity for readability")
-            elif len(top_objects) >= 20:
-                max_fields_per_entity = 8  # Light limit for smaller diagrams
-                print("⚠️  Auto-limiting to 8 fields per entity for readability")
+            for threshold, limit in ERDConfig.FIELD_LIMIT_THRESHOLDS.items():
+                if len(top_objects) >= threshold:
+                    max_fields_per_entity = limit
+                    print(f"⚠️  Auto-limiting to {limit} fields per entity for readability")
+                    break
         
         # Generate DOT ERD
         print("Using DOT (Graphviz) engine for optimal scalability...")
@@ -406,15 +445,15 @@ def main():
                        help="Output directory for generated files (default: output)")
     parser.add_argument("--max-objects", 
                        type=int,
-                       default=15,
+                       default=ERDConfig.DEFAULT_MAX_OBJECTS,
                        help="Maximum number of objects in ERD")
     parser.add_argument("--formats", 
                        nargs="+",
-                       default=["svg"],
+                       default=ERDConfig.DEFAULT_FORMATS,
                        choices=["png", "svg", "pdf"],
                        help="Image formats to generate (default: svg)")
     parser.add_argument("--filename",
-                       default="final_erd",
+                       default=ERDConfig.DEFAULT_FILENAME,
                        help="Base filename for output files")
     parser.add_argument("--objects", 
                        nargs="*",
@@ -424,12 +463,12 @@ def main():
                        choices=["auto", "left-right", "top-down"],
                        help="Layout direction (default: auto)")
     parser.add_argument("--engine",
-                       default="dot",
+                       default=ERDConfig.DEFAULT_ENGINE,
                        choices=["dot", "neato", "fdp", "sfdp", "circo", "twopi"],
                        help="Graphviz layout engine: dot (hierarchical), neato (spring), fdp (force-directed), sfdp (scalable force), circo (circular), twopi (radial)")
     parser.add_argument("--width",
                        type=int,
-                       default=1200,
+                       default=ERDConfig.DEFAULT_WIDTH,
                        help="Image width in pixels (default: 1200)")
     parser.add_argument("--show-fields",
                        action="store_true",

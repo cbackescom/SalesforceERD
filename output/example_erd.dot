@@ -1,0 +1,29 @@
+digraph G {
+  label="Salesforce System ERD";
+  labelloc=t;
+  fontsize=24;
+  fontname="Arial, sans-serif";
+  rankdir=LR;
+  splines=ortho;
+  nodesep=1.0;
+  ranksep=2.0;
+  overlap=false;
+  concentrate=false;
+  node [shape=record, style=filled, fontname="Arial, sans-serif", fontsize=12, margin=0.1];
+  edge [fontname="Arial, sans-serif", fontsize=10, penwidth=1.5];
+
+  Employee__c [label="*Employee*|Department__c : Lookup", fillcolor="#FFF9C4"];
+  Violation__c [label="*Violation*|Related_Violation__c : Lookup|Employee__c : MasterDetail", fillcolor="#FFF9C4"];
+  Department__c [label="*Department*|Department_Manager__c : MasterDetail", fillcolor="#FFF9C4"];
+  Quality_Assurance__c [label="*Quality Assurance*|Department_Name_del__c : Lookup|User__c : Lookup|Employee__c : MasterDetail", fillcolor="#FFF9C4"];
+  Timeclock__c [label="*Timeclock*|Employee__c : Lookup", fillcolor="#FFF9C4"];
+
+  Timeclock__c:"Employee__c" -> Employee__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
+  Violation__c:"Related_Violation__c" -> Violation__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
+  Violation__c:"Employee__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
+  Employee__c:"Department__c" -> Department__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
+  Department__c:"Department_Manager__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
+  Quality_Assurance__c:"Department_Name_del__c" -> Department__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
+  Quality_Assurance__c:"User__c" -> User [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
+  Quality_Assurance__c:"Employee__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
+}

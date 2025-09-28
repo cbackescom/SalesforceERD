@@ -83,6 +83,14 @@ All files are saved in the specified output directory with an `images/` subdirec
 
 ## Example Output
 
+### Generated ERD Diagram
+
+Here's an example of a generated ERD diagram showing Salesforce objects and their relationships:
+
+![Salesforce ERD Example](output/images/example_erd.svg)
+
+*Example ERD showing Account, Contact, and related custom objects with their relationships*
+
 ### DOT Diagram Structure
 
 The generator creates DOT format diagrams with the following features:
