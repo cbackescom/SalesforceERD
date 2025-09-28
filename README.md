@@ -4,7 +4,7 @@ This directory contains tools for generating Entity Relationship Diagrams (ERDs)
 
 ## Overview
 
-The ERD generator parses Salesforce object metadata and creates Graphviz diagrams that follow the established styling standards found in the project documentation. It supports:
+The ERD generator parses Salesforce object metadata and creates DOT (Graphviz) diagrams that can be rendered as images in multiple formats. It supports:
 
 - **Standard Objects**: Salesforce standard objects (Account, Contact, etc.)
 - **Custom Objects**: Project-specific custom objects (ending in `__c`)
@@ -13,58 +13,85 @@ The ERD generator parses Salesforce object metadata and creates Graphviz diagram
 
 ## Features
 
-- **Comprehensive ERD**: System-wide diagram showing all major objects and relationships
-- **Individual Object Diagrams**: Focused diagrams for specific objects and their immediate relationships
-- **Object Summary**: Detailed summary of all objects, their types, and relationships
-- **Salesforce Styling**: Follows the established color coding and styling standards:
-  - Standard Objects: Blue (`#D6E9FF`)
-  - Custom Objects: Yellow (`#FFF4C2`)
-  - Managed Objects: Orange (`#FFD8B2`)
-  - Main Objects: Red (`#FFB3B3`)
+- **DOT/Graphviz Generation**: Creates DOT format diagrams that can be rendered using Graphviz
+- **Multiple Image Formats**: Generates images in PNG, SVG, and PDF formats
+- **Smart Object Selection**: Automatically selects the most connected objects for comprehensive diagrams
+- **Field Display Control**: Option to show/hide fields and limit field count for readability
+- **Multiple Layout Engines**: Support for different Graphviz layout engines (dot, neato, fdp, sfdp, circo, twopi)
+- **Salesforce Styling**: Color-coded objects based on type:
+  - Standard Objects: Light Blue (`#E1F5FE`)
+  - Custom Objects: Light Yellow (`#FFF9C4`)
+  - Managed Objects: Light Orange (`#FFE0B2`)
 
 ## Usage
 
 ### Prerequisites
 
-The script uses the existing Python environment in `scripts/erd_env/` which includes the `erdantic` package.
+- **Python 3.6+**: The script requires Python 3.6 or higher
+- **Graphviz**: Must be installed on your system to generate images
+  - macOS: `brew install graphviz`
+  - Ubuntu: `sudo apt-get install graphviz`
+  - Windows: Download from [graphviz.org](https://graphviz.org/download/)
 
 ### Basic Usage
 
 ```bash
-# Generate all ERD diagrams
-python generate_erd.py
+# Generate ERD with default settings (top 15 objects, SVG format)
+python erd_generator.py
 
 # Generate diagram for specific objects
-python generate_erd.py --objects Account Contact Service_Assignment__c
+python erd_generator.py --objects Account Contact Service_Assignment__c
 
-# Generate diagram for a single object
-python generate_erd.py --single-object Service_Assignment__c
+# Generate multiple image formats
+python erd_generator.py --formats svg png pdf
 
-# Limit comprehensive ERD to top 30 objects
-python generate_erd.py --max-objects 30
+# Limit ERD to top 30 objects
+python erd_generator.py --max-objects 30
+
+# Use different layout engine
+python erd_generator.py --engine neato
+
+# Hide fields for simpler view
+python erd_generator.py --hide-fields
 ```
 
 ### Command Line Options
 
-- `--objects-path`: Path to Salesforce objects directory (default: `force-app/main/default/objects`)
-- `--output-dir`: Output directory for generated diagrams (default: `ERD`)
-- `--objects`: Specific objects to include (default: all)
-- `--max-objects`: Maximum number of objects in comprehensive ERD (default: 50)
-- `--single-object`: Generate diagram for a single object only
+- `--objects-path`: Path to Salesforce objects directory (default: `../force-app/main/default/objects`)
+- `--output-dir`: Output directory for generated files (default: `output`)
+- `--objects`: Specific objects to include (default: auto-select top connected)
+- `--max-objects`: Maximum number of objects in ERD (default: 15)
+- `--formats`: Image formats to generate - png, svg, pdf (default: svg)
+- `--filename`: Base filename for output files (default: final_erd)
+- `--engine`: Graphviz layout engine - dot, neato, fdp, sfdp, circo, twopi (default: dot)
+- `--width`: Image width in pixels (default: 1200)
+- `--show-fields`: Show fields inside object boxes (default: True)
+- `--hide-fields`: Hide fields inside object boxes (simpler view)
+- `--max-fields-per-entity`: Limit number of fields shown per entity
+- `--auto-limit-fields`: Automatically limit fields for large diagrams (default: True)
 
 ### Output Files
 
-The generator creates several output files:
+The generator creates the following output files:
 
-1. **`comprehensive_erd.md`**: System-wide ERD showing the most connected objects
-2. **`{object_name}_erd.md`**: Individual diagrams for top 20 most connected objects
-3. **`object_summary.md`**: Detailed summary of all objects and relationships
+1. **`{filename}.dot`**: DOT format file that can be used with Graphviz tools
+2. **`images/{filename}.svg`**: Scalable vector graphics image (default)
+3. **`images/{filename}.png`**: PNG image (if specified)
+4. **`images/{filename}.pdf`**: PDF document (if specified)
+
+All files are saved in the specified output directory with an `images/` subdirectory for image files.
 
 ## Example Output
 
-### Graphviz Diagram Structure
+### DOT Diagram Structure
 
-The generator creates Graphviz DOT format diagrams that can be rendered using Graphviz tools. The diagrams follow the established color coding and styling standards for different object types.
+The generator creates DOT format diagrams with the following features:
+
+- **Entity Boxes**: Objects are represented as record-shaped boxes with fields
+- **Relationship Arrows**: Different arrow styles for Master-Detail vs Lookup relationships
+- **Color Coding**: Objects are color-coded by type (Standard, Custom, Managed)
+- **Field Display**: Shows relationship fields with required field indicators (*)
+- **Layout Control**: Supports multiple Graphviz layout engines for different visual styles
 
 ## Object Types and Styling
 
@@ -79,15 +106,6 @@ The generator creates Graphviz DOT format diagrams that can be rendered using Gr
 
 - **Master-Detail**: Strong parent-child relationships (solid arrows)
 - **Lookup**: Reference relationships (solid arrows)
-
-## Integration with Documentation
-
-The generated diagrams follow the same styling standards used in the existing project documentation found in the `docs/` directory. They can be easily integrated into:
-
-- Markdown documentation files
-- Graphviz-compatible viewers and tools
-- GitHub/GitLab documentation
-- Confluence or other documentation platforms
 
 ## Troubleshooting
 
@@ -114,7 +132,6 @@ When modifying the ERD generator:
 
 ## Related Files
 
-- `generate_erd.py`: Main ERD generation script
-- `scripts/erd_env/`: Python environment with required dependencies
-- `docs/objects/`: Existing object documentation with ERD examples
-- `force-app/main/default/objects/`: Salesforce object metadata source
+- `erd_generator.py`: Main ERD generation script
+- `ERD/`: Output directory for generated diagrams (when using default settings)
+- `../force-app/main/default/objects/`: Salesforce object metadata source (default path)
