@@ -12,18 +12,18 @@ digraph G {
   node [shape=record, style=filled, fontname="Arial, sans-serif", fontsize=12, margin=0.1];
   edge [fontname="Arial, sans-serif", fontsize=10, penwidth=1.5];
 
-  Employee__c [label="*Employee*|Department__c : Lookup", fillcolor="#FFF9C4"];
-  Violation__c [label="*Violation*|Related_Violation__c : Lookup|Employee__c : MasterDetail", fillcolor="#FFF9C4"];
-  Department__c [label="*Department*|Department_Manager__c : MasterDetail", fillcolor="#FFF9C4"];
-  Quality_Assurance__c [label="*Quality Assurance*|Department_Name_del__c : Lookup|User__c : Lookup|Employee__c : MasterDetail", fillcolor="#FFF9C4"];
-  Timeclock__c [label="*Timeclock*|Employee__c : Lookup", fillcolor="#FFF9C4"];
+  Employee__c [label="*Employee*|*Hire_Date__c* : Date|Shift_Assignment__c : Picklist|Employee_Email__c : Email|Employee_Score__c : Number|*First_Name__c* : Text|Terminated_Date__c : Date|Department__c : Lookup|*Last_Name__c* : Text", fillcolor="#FFF9C4"];
+  Violation__c [label="*Violation*|Expiration_Date__c : Date|Approved__c : Checkbox|Violation_Type__c : Picklist|*Violation_Date__c* : Date|Violation_Stage__c : Picklist|Related_Violation__c : Lookup|Employee__c : MasterDetail|Initial_Review_Completed__c : Checkbox|Drawloop_Next__c : Text", fillcolor="#FFF9C4"];
+  Department__c [label="*Department*|Department_Name__c : Text|Date_Decommissioned__c : Date|Date_Enabled__c : Date|Department_Manager__c : MasterDetail", fillcolor="#FFF9C4"];
+  Quality_Assurance__c [label="*Quality Assurance*|Department_Name_del__c : Lookup|QA_Results__c : Number|User__c : Lookup|QA1_5__c : Checkbox|*Date_Compiled__c* : Date|QA2_1__c : Checkbox|QA1_4__c : Checkbox|QA3_1__c : Checkbox|QA2_4__c : Checkbox|QA1_1__c : Checkbox|Employee__c : MasterDetail|QA2_2__c : Checkbox|QA1_2__c : Checkbox|QA2_3__c : Checkbox|QA1_3__c : Checkbox", fillcolor="#FFF9C4"];
+  Timeclock__c [label="*Timeclock*|Clock_In__c : DateTime|Employee__c : Lookup|Time_Worked__c : Number|Clock_Out__c : DateTime", fillcolor="#FFF9C4"];
 
-  Timeclock__c:"Employee__c" -> Employee__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
-  Violation__c:"Related_Violation__c" -> Violation__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
-  Violation__c:"Employee__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
-  Employee__c:"Department__c" -> Department__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
-  Department__c:"Department_Manager__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
-  Quality_Assurance__c:"Department_Name_del__c" -> Department__c [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
-  Quality_Assurance__c:"User__c" -> User [arrowhead=open, arrowtail=none, color=gray, penwidth=1.5];
-  Quality_Assurance__c:"Employee__c" -> Employee__c [arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0];
+  Timeclock__c -> Employee__c [label="Employee__c", arrowhead=none, arrowtail=crow, color=gray, penwidth=1.5, dir=both, arrowsize=1.5];
+  Violation__c -> Violation__c [label="Related_Violation__c", arrowhead=none, arrowtail=crow, color=gray, penwidth=1.5, dir=both, arrowsize=1.5];
+  Violation__c -> Employee__c [label="Employee__c", arrowhead=crow, arrowtail=none, color=steelblue, penwidth=2.0, dir=both, arrowsize=1.5];
+  Employee__c -> Department__c [label="Department__c", arrowhead=none, arrowtail=crow, color=gray, penwidth=1.5, dir=both, arrowsize=1.5];
+  Department__c -> Employee__c [label="Department_Manager__c", arrowhead=crow, arrowtail=none, color=steelblue, penwidth=2.0, dir=both, arrowsize=1.5];
+  Quality_Assurance__c -> Department__c [label="Department_Name_del__c", arrowhead=none, arrowtail=crow, color=gray, penwidth=1.5, dir=both, arrowsize=1.5];
+  Quality_Assurance__c -> User [label="User__c", arrowhead=none, arrowtail=crow, color=gray, penwidth=1.5, dir=both, arrowsize=1.5];
+  Quality_Assurance__c -> Employee__c [label="Employee__c", arrowhead=crow, arrowtail=none, color=steelblue, penwidth=2.0, dir=both, arrowsize=1.5];
 }

@@ -49,17 +49,42 @@ class ERDConfig:
         'rank_sep': 2.0,
         'edge_penwidth': 1.5,
         'master_detail_penwidth': 2.0,
+        'arrowsize': 1.5,  # Size of arrowheads and crow's feet
         'font_family': "Arial, sans-serif",
     }
     
-    # Relationship arrow styles
+    # Relationship arrow styles with ERD cardinality notation
     ARROW_STYLES = {
-        'master_detail': "arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0",
-        'lookup': "arrowhead=open, arrowtail=none, color=gray, penwidth=1.5",
+        'master_detail': "arrowhead=dot, arrowtail=dot, color=steelblue, penwidth=2.0, dir=both",
+        'lookup': "arrowhead=open, arrowtail=none, color=gray, penwidth=1.5, dir=forward",
+    }
+    
+    # ERD cardinality notation using proper crow's foot
+    CARDINALITY_STYLES = {
+        'one_to_many': "arrowhead=crow, arrowtail=none",  # Crow's foot at "many" end
+        'many_to_one': "arrowhead=none, arrowtail=crow",  # Crow's foot at "many" end (source)
+        'one_to_one': "arrowhead=none, arrowtail=none",   # No arrows for one-to-one
+        'many_to_many': "arrowhead=crow, arrowtail=crow", # Crow's feet on both ends
     }
     
     # Display limits
     MAX_OBJECTS_DISPLAY = 10  # Max objects to show in selection message
+    
+    # Field type categories for display filtering
+    FIELD_TYPE_CATEGORIES = {
+        'relationships': ['Lookup', 'MasterDetail'],
+        'standard': ['Text', 'Email', 'Phone', 'Url', 'TextArea', 'LongTextArea', 'RichTextArea'],
+        'numeric': ['Number', 'Currency', 'Percent'],
+        'date_time': ['Date', 'DateTime', 'Time'],
+        'boolean': ['Checkbox'],
+        'picklist': ['Picklist', 'MultiselectPicklist'],
+        'system': ['Id', 'CreatedDate', 'LastModifiedDate', 'CreatedById', 'LastModifiedById'],
+        'formula': ['Formula'],
+        'other': ['Location', 'Address', 'Geolocation']
+    }
+    
+    # Default field types to show
+    DEFAULT_FIELD_TYPES = ['relationships', 'standard', 'system']
 
 
 @dataclass
@@ -224,16 +249,37 @@ class SalesforceERDGenerator:
         
         print(f"Found {len(self.relationships)} relationships")
     
-    def get_key_fields(self, obj: SalesforceObject) -> List[SalesforceField]:
-        """Get only relationship fields (lookup and master-detail) that connect to other entities."""
-        relationship_fields = []
+    def get_key_fields(self, obj: SalesforceObject, field_types: List[str] = None) -> List[SalesforceField]:
+        """Get fields based on specified field type categories."""
+        if field_types is None:
+            field_types = ERDConfig.DEFAULT_FIELD_TYPES
         
-        # Only include lookup and master-detail fields that have a reference_to value
+        selected_fields = []
+        
+        # Get all field types to include
+        types_to_include = set()
+        for category in field_types:
+            if category in ERDConfig.FIELD_TYPE_CATEGORIES:
+                types_to_include.update(ERDConfig.FIELD_TYPE_CATEGORIES[category])
+        
+        # Filter fields based on type and special conditions
         for field in obj.fields:
-            if field.is_lookup and field.reference_to:
-                relationship_fields.append(field)
+            should_include = False
+            
+            if field.type in types_to_include:
+                # Special handling for relationship fields
+                if field.type in ['Lookup', 'MasterDetail']:
+                    # Only include if it has a reference_to value
+                    if field.reference_to:
+                        should_include = True
+                else:
+                    # Include all other field types
+                    should_include = True
+            
+            if should_include:
+                selected_fields.append(field)
         
-        return relationship_fields
+        return selected_fields
     
     def get_top_connected_objects(self, max_objects: int) -> List[str]:
         """Get top objects by relationship count."""
@@ -261,7 +307,7 @@ class SalesforceERDGenerator:
             label = label[:22] + "..."
         return label
     
-    def generate_dot_erd(self, objects: List[str], title: str = "Salesforce ERD", show_fields: bool = True, max_fields_per_entity: int = None) -> str:
+    def generate_dot_erd(self, objects: List[str], title: str = "Salesforce ERD", show_fields: bool = True, max_fields_per_entity: int = None, field_types: List[str] = None) -> str:
         """Generate a DOT (Graphviz) ERD diagram."""
         dot_lines = [
             "digraph G {",
@@ -288,7 +334,7 @@ class SalesforceERDGenerator:
                 # Create node label with fields
                 if show_fields:
                     # Get fields to display
-                    key_fields = self.get_key_fields(obj)
+                    key_fields = self.get_key_fields(obj, field_types)
                     if max_fields_per_entity is not None:
                         key_fields = key_fields[:max_fields_per_entity]
                     
@@ -301,8 +347,8 @@ class SalesforceERDGenerator:
                         # Show full field names for better clarity
                         field_lines.append(f"{field_name} : {field.type}")
                     
-                    if max_fields_per_entity is not None and len(self.get_key_fields(obj)) > max_fields_per_entity:
-                        field_lines.append(f"... {len(self.get_key_fields(obj)) - max_fields_per_entity} more")
+                    if max_fields_per_entity is not None and len(self.get_key_fields(obj, field_types)) > max_fields_per_entity:
+                        field_lines.append(f"... {len(self.get_key_fields(obj, field_types)) - max_fields_per_entity} more")
                     
                     # DOT record format: "label|field1|field2|..." with better spacing
                     node_content = f"*{obj.label}*|" + "|".join(field_lines)
@@ -321,18 +367,41 @@ class SalesforceERDGenerator:
         
         dot_lines.append("")
         
-        # Add edges (relationships) with field names
+        # Add edges (relationships) with ERD cardinality notation
         for rel in self.relationships:
             if rel.from_object in objects and rel.to_object in objects:
-                # Determine arrow style and color based on relationship type
+                # Determine cardinality and arrow style based on relationship type
                 if rel.type == "Master-Detail":
-                    arrow_style = ERDConfig.ARROW_STYLES['master_detail']
+                    # Master-Detail: One-to-Many (Master has many Details)
+                    cardinality_style = ERDConfig.CARDINALITY_STYLES['one_to_many']
+                    color_style = "color=steelblue, penwidth=2.0"
+                    # Use dir=both to enable arrowtail for crow's foot
+                    direction_style = "dir=both"
                 else:  # Lookup
-                    arrow_style = ERDConfig.ARROW_STYLES['lookup']
+                    # Lookup: Many-to-One (Many records can reference one parent)
+                    cardinality_style = ERDConfig.CARDINALITY_STYLES['many_to_one']
+                    color_style = "color=gray, penwidth=1.5"
+                    # Use dir=both to enable arrowtail for crow's foot
+                    direction_style = "dir=both"
                 
-                # Use ports to connect to specific field positions and include field name in the connection
-                # This creates a more direct visual connection between the field and the relationship
-                dot_lines.append(f'  {rel.from_object}:"{rel.from_field}" -> {rel.to_object} [{arrow_style}];')
+                # Add arrowsize for better visibility
+                size_style = f"arrowsize={ERDConfig.DOT_STYLES['arrowsize']}"
+                
+                # Combine cardinality, color, direction, and size styles
+                arrow_style = f"{cardinality_style}, {color_style}, {direction_style}, {size_style}"
+                
+                # Check if the relationship field is actually displayed in the node
+                from_obj = self.objects[rel.from_object]
+                displayed_fields = self.get_key_fields(from_obj, field_types)
+                field_names = [f.name for f in displayed_fields]
+                
+                if rel.from_field in field_names:
+                    # For complex field layouts, use object-to-object with field label
+                    # This is more reliable than port connections with many fields
+                    dot_lines.append(f'  {rel.from_object} -> {rel.to_object} [label="{rel.from_field}", {arrow_style}];')
+                else:
+                    # Connect to the object itself if the field is not displayed
+                    dot_lines.append(f'  {rel.from_object} -> {rel.to_object} [label="{rel.from_field}", {arrow_style}];')
         
         dot_lines.append("}")
         
@@ -380,7 +449,7 @@ class SalesforceERDGenerator:
             print(f"Error generating DOT image: {e}")
             return False
 
-    def generate_erd_with_images(self, max_objects: int = ERDConfig.DEFAULT_MAX_OBJECTS, formats: List[str] = None, filename: str = "salesforce_erd", layout: str = "auto", width: int = ERDConfig.DEFAULT_WIDTH, show_fields: bool = True, max_fields_per_entity: int = None, auto_limit_fields: bool = True, engine: str = ERDConfig.DEFAULT_ENGINE) -> bool:
+    def generate_erd_with_images(self, max_objects: int = ERDConfig.DEFAULT_MAX_OBJECTS, formats: List[str] = None, filename: str = "salesforce_erd", layout: str = "auto", width: int = ERDConfig.DEFAULT_WIDTH, show_fields: bool = True, max_fields_per_entity: int = None, auto_limit_fields: bool = True, engine: str = ERDConfig.DEFAULT_ENGINE, field_types: List[str] = None) -> bool:
         """Generate ERD and create images in one go."""
         if formats is None:
             formats = ERDConfig.DEFAULT_FORMATS
@@ -405,7 +474,7 @@ class SalesforceERDGenerator:
         
         # Generate DOT ERD
         print("Using DOT (Graphviz) engine for optimal scalability...")
-        erd_content = self.generate_dot_erd(top_objects, "Salesforce System ERD", show_fields, max_fields_per_entity)
+        erd_content = self.generate_dot_erd(top_objects, "Salesforce System ERD", show_fields, max_fields_per_entity, field_types)
         
         # Save DOT file
         dot_path = self.output_dir / f"{filename}.dot"
@@ -481,6 +550,11 @@ def main():
                        help="Limit number of fields shown per entity (default: auto-limited for large diagrams)")
     parser.add_argument("--auto-limit-fields", action="store_true", default=True,
                        help="Automatically limit fields for large diagrams to avoid readability issues (default: True)")
+    parser.add_argument("--field-types", 
+                       nargs="+",
+                       default=ERDConfig.DEFAULT_FIELD_TYPES,
+                       choices=list(ERDConfig.FIELD_TYPE_CATEGORIES.keys()),
+                       help=f"Field type categories to include: {', '.join(ERDConfig.FIELD_TYPE_CATEGORIES.keys())} (default: {', '.join(ERDConfig.DEFAULT_FIELD_TYPES)})")
     
     args = parser.parse_args()
     
@@ -511,7 +585,8 @@ def main():
             show_fields=show_fields,
             max_fields_per_entity=args.max_fields_per_entity,
             auto_limit_fields=args.auto_limit_fields,
-            engine=args.engine
+            engine=args.engine,
+            field_types=args.field_types
         )
         
         return 0 if success else 1
